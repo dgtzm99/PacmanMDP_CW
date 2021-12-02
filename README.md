@@ -1,6 +1,12 @@
 # Pacman
 King's College London Coursework for 6CCS3AIN (AI Reasoning and Decision Making)
 
+This is a Coursework where one has to develope an agent that can calculate Markov Decision Process (MDP) using Value iteration to calculate the utilities throughout the space of the many pacman maps.
+
+With the MDP, the agent (pacman) should be able to avoid ghosts, and win the game, that is, by finishing eating all the food and capsules before the ghosts get to pacman.
+
+The Agent's success is not expected to be perfect. (~17/25 in smallGrid | ~8/25 in mediumClassic)
+
 To run pacman.py on David's windows 10
 launch xming x server located in 'Program Files (x86) 
 click on the 'XLaunch' file
@@ -15,22 +21,7 @@ That is navigate to the mini-icons on the down-right corner on the
 desktop, and click the xming 'exit'
 
 
-///Playing with Random Agent
-	'python2 pacman.py --pacman RandomAgent'
-	'python2 pacman.py --pacman RandomishAgent'
-	'python2 pacman.py --pacman SensingAgent'
-
-	Made by me
-	'python2 pacman.py --pacman GoWestAgent'
-	'python2 pacman.py --pacman HungryAgent'
-	'python2 pacman.py --pacman SurvivalAgent'
-
-///Practical 2
-	Corners of medium classic is: [(0, 0), (19, 0), (0, 10), (19, 10)]
-	'python2 pacman.py --pacman CornerSeekingAgent --layout mediumClassicNoGhosts'
-
-///Coursework
-	Testing
+	Coursework testing commands
 	'python2 pacman.py --pacman MDPAgent'
 	'python2 pacman.py -q -n 25 -p MDPAgent -l smallGrid'
 	'python2 pacman.py -q -n 25 -p MDPAgent -l mediumClassic'
