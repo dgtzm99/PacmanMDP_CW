@@ -67,36 +67,46 @@ class Grid:
         self.grid = subgrid
 
     def prettyDisplay(self): 
-        # The display function prints the grid out. 
+        # This function is a modified version of the one in 
+        # the mapAgents.py file, It displays the grid, along with its
+        # current utility values as doubles, and the walls as '%'
      
         for i in range(self.height):
             for j in range(self.width):
                 # print grid elements with no newline
-                print self.grid[self.height - (i + 1)][j],
+                val = self.grid[self.height - (i + 1)][j]
+                if val == '%':
+                    print '{:^8}'.format(val), 
+                else:
+                    print '{:^8.2f}'.format(val), 
             # A new line after each line of the grid
             print 
         # A line after the grid
         print
         
     def setValue(self, x, y, value):
+        # Function from mapAgents.py
         # Set the values of specific elements in the grid.
         # Here x and y are indices.
 
         self.grid[y][x] = value
 
     def getValue(self, x, y):
+        # Function from mapAgents.py
         # Get the values of specific elements in the grid.
         # Here x and y are indices.
 
         return self.grid[y][x]
 
     def getHeight(self):
+        # Function from mapAgents.py
         # Return the height to support functions that manipulate the
         # values stored in the grid.
 
         return self.height
 
     def getWidth(self):
+        # Function from mapAgents.py
         # Return the width to support functions that manipulate the
         # values stored in the grid.
 
@@ -106,17 +116,20 @@ class Grid:
 
 gamma = 0.6 # Discount factor
 reward_food = 2
-reward_ghost = -500
-reward_capsule = 4
-approximation_value = 0.00001
-iterations = 15
+reward_ghost = -525
+reward_capsule = 3
+reward_empty_pos = -0.4
+iterations = 30
 
 class MDPAgent(Agent):
     #
-    # MDP Agent 6CCS3AIN
+    # MDP Agent 6CCS3AIN Coursework
     # Made by David Gutierrez Moreno
     # K-number = k19032572
     #
+    # This Agent class conducts an MDP using Value iteration to try
+    # and find the best actions to take (optimal policies) in order to win
+    # the game, that is, eating all the food while avoiding the ghosts.
 
     def __init__(self):
         # Constructor: this gets run when we first invoke pacman.py
@@ -134,7 +147,6 @@ class MDPAgent(Agent):
         self.makeMap(state)
         self.addWallsToMap(state)
         self.updateFoodInMap(state)
-        # self.updateCapsulesInMap(state)
 
     def makeMap(self,state):
         # Function taken from KEATS 6CCS3AIN Week 5
@@ -186,13 +198,6 @@ class MDPAgent(Agent):
         # food = api.food(state)
         # for i in range(len(food)):
         #     self.map.setValue(food[i][0], food[i][1], '*')
-
-    def updateCapsulesInMap(self, state):
-        # Updates the capsules 'o' in the map.
-
-        capsules = api.capsules(state)
-        for i in range(len(capsules)):
-            self.map.setValue(capsules[i][0], capsules[i][1], 'o')
         
     def final(self, state):
         # This is what gets run in between multiple games
@@ -237,6 +242,7 @@ class MDPAgent(Agent):
         # Getting state info
         ghost_pos = api.ghosts(state)
         ghost_pos_time = api.ghostStatesWithTimes(state) # [((x,y),time),...])]
+        # print ghost_pos_time
         # pacman = api.whereAmI(state)
         food = api.food(state)
         capsules = api.capsules(state)
@@ -248,21 +254,31 @@ class MDPAgent(Agent):
                     value = self.map.getValue(i, j)
                     if value != '%':
                         if (i,j) in ghost_pos:
-                            reward = reward_ghost
+                            # Determines ghost reward depending on how 'dangerous' it is
+                            ghost_time = ghost_pos_time[ghost_pos.index((i,j))][1]
+                            if ghost_time > 0:
+                                reward = reward_ghost * (1-(0.005*ghost_time))
+                            else:
+                                reward = reward_ghost
+                            # print 'ghost: ' + str(reward)print 'Iteration: ' + str(k)
+            # self.map.prettyDisplay()
                         elif (i,j) in food:
                             reward = reward_food
                         elif (i,j) in capsules:
                             reward = reward_capsule
                         else:
-                            reward = -0.1
+                            reward = reward_empty_pos
                         newUtility = self.computeUtility(i, j, value, reward)
                         newUtilityList.append(((i,j), newUtility))
+            # print 'Iteration: ' + str(k)
+            # self.map.prettyDisplay()
             # Update the map with the new utility values
             for ((i,j), newUtility) in newUtilityList:
                 self.map.setValue(i, j, newUtility)
 
     def getOptimalPolicy(self, state, legal):
         # Returns optimal policy from the legal actions available
+
         pacman = api.whereAmI(state)
         pacX = pacman[0]
         pacY = pacman[1]
@@ -286,25 +302,24 @@ class MDPAgent(Agent):
             if action == Directions.EAST:
                 right_util = 0.8*right + 0.1*up + 0.1*down
                 action_utilities.append((action, right_util))
+            # for i in range(len(action_utilities)):
+            #     print action_utilities[i]
+            # print 'best action: ' + str(max(action_utilities, key = lambda i : i[1]))
         return max(action_utilities, key = lambda i : i[1])[0]
 
                     
 
     def getAction(self, state):
-        # Iterates throughout the entire game, per action taken
+        # This is the starting point from where the Agent begins every
+        # Action it takes.
         #
-
-        # ghost_pos_time = api.ghostStatesWithTimes(state) # [((x,y),time),...])]
-        # pacman = api.whereAmI(state)
-        # food = api.food(state)
-        # capsules = api.capsules(state)
+        # Prepare map for next value iteration for the next action
+        self.updateFoodInMap(state)
 
         # No 'STOP' action allowed
         legal = api.legalActions(state)
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
-
-        # self.map.prettyDisplay()
 
         # Start Value iteration process
         self.computeValueIteration(state)
@@ -312,5 +327,7 @@ class MDPAgent(Agent):
         # Get the best action (optimal policy)
         bestAction = self.getOptimalPolicy(state, legal)
 
-        # Random choice between the legal options.
+        # Pacman tries to use optimal policy, bearing in mind
+        # that it may not take the action due to its non deterministic nature
+        # with 80% probability of succeeding.
         return api.makeMove(bestAction, legal)
